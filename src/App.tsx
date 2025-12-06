@@ -63,6 +63,41 @@ function RequireToolActivation({ toolId, children }: { toolId: string; children:
   return <>{children}</>;
 }
 
+function RequireWhitelist({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+    async function check() {
+      if (!user) {
+        setAllowed(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!mounted) return;
+      if (error || !data) {
+        setAllowed(false);
+      } else {
+        setAllowed(true);
+      }
+    }
+    check();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  if (allowed === null) return null;
+  if (!allowed) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+}
+
 function ToolActivationPage() {
   const { toolId } = useParams();
   const [key, setKey] = useState("");
@@ -139,9 +174,11 @@ const App = () => (
               path="/"
               element={
                 <RequireAuth>
-                  <DashboardLayout>
-                    <Dashboard />
-                  </DashboardLayout>
+                  <RequireWhitelist>
+                    <DashboardLayout>
+                      <Dashboard />
+                    </DashboardLayout>
+                  </RequireWhitelist>
                 </RequireAuth>
               }
             />
@@ -149,11 +186,13 @@ const App = () => (
               path="/tools/renumber"
               element={
                 <RequireAuth>
-                  <RequireToolActivation toolId="renumber">
-                    <DashboardLayout>
-                      <Tools />
-                    </DashboardLayout>
-                  </RequireToolActivation>
+                  <RequireWhitelist>
+                    <RequireToolActivation toolId="renumber">
+                      <DashboardLayout>
+                        <Tools />
+                      </DashboardLayout>
+                    </RequireToolActivation>
+                  </RequireWhitelist>
                 </RequireAuth>
               }
             />
@@ -161,11 +200,13 @@ const App = () => (
               path="/tools/formatter"
               element={
                 <RequireAuth>
-                  <RequireToolActivation toolId="formatter">
-                    <DashboardLayout>
-                      <div className="text-muted-foreground">XML Formatter is coming soon.</div>
-                    </DashboardLayout>
-                  </RequireToolActivation>
+                  <RequireWhitelist>
+                    <RequireToolActivation toolId="formatter">
+                      <DashboardLayout>
+                        <div className="text-muted-foreground">XML Formatter is coming soon.</div>
+                      </DashboardLayout>
+                    </RequireToolActivation>
+                  </RequireWhitelist>
                 </RequireAuth>
               }
             />
@@ -173,11 +214,13 @@ const App = () => (
               path="/tools/merge"
               element={
                 <RequireAuth>
-                  <RequireToolActivation toolId="merge">
-                    <DashboardLayout>
-                      <div className="text-muted-foreground">XML Merge is coming soon.</div>
-                    </DashboardLayout>
-                  </RequireToolActivation>
+                  <RequireWhitelist>
+                    <RequireToolActivation toolId="merge">
+                      <DashboardLayout>
+                        <div className="text-muted-foreground">XML Merge is coming soon.</div>
+                      </DashboardLayout>
+                    </RequireToolActivation>
+                  </RequireWhitelist>
                 </RequireAuth>
               }
             />
