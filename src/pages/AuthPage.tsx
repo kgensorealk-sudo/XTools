@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { Hash, Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -18,14 +19,32 @@ export default function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { signIn, user, loading } = useAuth();
+  const { signIn, user, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (user && !loading) {
-      navigate('/');
+    async function check() {
+      if (user && !loading) {
+        const { data, error } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (error) {
+          setAllowed(false);
+          return;
+        }
+        if (data) {
+          navigate('/');
+        } else {
+          setAllowed(false);
+        }
+      }
     }
+    check();
   }, [user, loading, navigate]);
 
   const validateForm = () => {
@@ -86,7 +105,7 @@ export default function AuthPage() {
     }
   };
 
-  if (loading) {
+  if (loading || (user && allowed === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -104,6 +123,12 @@ export default function AuthPage() {
           <div>
             <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
             <CardDescription className="mt-2">Sign in to access your dashboard and tools</CardDescription>
+            {user && allowed === false && (
+              <p className="mt-2 text-sm text-destructive">Your account is not whitelisted. Please contact the administrator.</p>
+            )}
+            {location.state?.reason === 'not_whitelisted' && (
+              <p className="mt-2 text-sm text-destructive">Access denied: your account is not whitelisted.</p>
+            )}
           </div>
         </CardHeader>
         
@@ -164,6 +189,18 @@ export default function AuthPage() {
                 'Sign In'
               )}
             </Button>
+            {user && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  await signOut();
+                }}
+              >
+                Sign out
+              </Button>
+            )}
             <button
               type="button"
               className="text-sm text-primary hover:underline"

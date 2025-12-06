@@ -22,11 +22,19 @@ const queryClient = new QueryClient();
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <FullPageLoader />;
   if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 }
 
+
+function FullPageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function RequireToolActivation({ toolId, children }: { toolId: string; children: React.ReactNode }) {
   const { user } = useAuth();
@@ -58,7 +66,7 @@ function RequireToolActivation({ toolId, children }: { toolId: string; children:
     };
   }, [user, toolId]);
 
-  if (allowed === null) return null;
+  if (allowed === null) return <FullPageLoader />;
   if (!allowed) return <Navigate to={`/tools/activate/${toolId}`} replace />;
   return <>{children}</>;
 }
@@ -93,8 +101,8 @@ function RequireWhitelist({ children }: { children: React.ReactNode }) {
     };
   }, [user]);
 
-  if (allowed === null) return null;
-  if (!allowed) return <Navigate to="/auth" replace />;
+  if (allowed === null) return <FullPageLoader />;
+  if (!allowed) return <Navigate to="/auth" replace state={{ reason: 'not_whitelisted' }} />;
   return <>{children}</>;
 }
 
