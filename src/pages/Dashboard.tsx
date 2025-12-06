@@ -26,6 +26,26 @@ const Dashboard = () => {
         </p>
       </div>
 
+      {/* Your Active Tools */}
+      <div className="bg-card rounded-xl p-6 shadow-card border border-border">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Your Active Tools</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link to="/tools">
+            <div className="group p-4 rounded-lg border border-primary/30 bg-background hover:border-primary/50 hover:shadow-soft transition-all cursor-pointer">
+              <div className="flex items-center justify-between mb-3">
+                <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center">
+                  <Wrench className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">Active</span>
+              </div>
+              <h3 className="font-semibold text-foreground">XML Renumbering Tool</h3>
+              <p className="text-sm text-muted-foreground mt-1">Unlocked and ready to use.</p>
+              <Button variant="link" className="px-0 mt-2 text-primary">Open Tool →</Button>
+            </div>
+          </Link>
+        </div>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
