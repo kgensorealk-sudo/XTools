@@ -1,6 +1,6 @@
 import { Home, Wrench, Settings, User } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -15,11 +15,12 @@ import {
   SidebarGroupAction,
   SidebarMenuBadge,
 } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
@@ -30,6 +31,32 @@ const navItems = [
 export function AppSidebar() {
   const [activationKey, setActivationKey] = useState("");
   const { toast } = useToast();
+  const [activatedMap, setActivatedMap] = useState<Record<string, boolean>>({});
+  const { user } = useAuth();
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      if (!user) {
+        setActivatedMap({});
+        return;
+      }
+      const { data } = await supabase
+        .from("tool_activations")
+        .select("tool_id")
+        .eq("user_id", user.id);
+      if (!mounted) return;
+      const map: Record<string, boolean> = {};
+      (data || []).forEach((row: any) => {
+        map[row.tool_id] = true;
+      });
+      setActivatedMap(map);
+    }
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
   return (
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-6">
@@ -76,7 +103,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <Dialog>
             <DialogTrigger asChild>
-              <SidebarGroupAction className="text-xs">Activate New Tool</SidebarGroupAction>
+              <SidebarGroupAction className="text-xs">Activate Tool</SidebarGroupAction>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -102,12 +129,11 @@ export function AppSidebar() {
           </Dialog>
 
           <SidebarGroupContent>
-            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground">Owned Tools</div>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive tooltip="XML Renumbering Tool">
+                <SidebarMenuButton asChild>
                   <NavLink
-                    to="/tools"
+                    to="/tools/renumber"
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
                     activeClassName="bg-primary/10 text-primary font-medium"
                   >
@@ -115,16 +141,14 @@ export function AppSidebar() {
                     <span>XML Renumbering Tool</span>
                   </NavLink>
                 </SidebarMenuButton>
-                <SidebarMenuBadge className="bg-primary/10">Unlocked</SidebarMenuBadge>
+                <SidebarMenuBadge className={activatedMap.renumber ? "bg-primary/10" : "bg-muted"}>
+                  {activatedMap.renumber ? "Active" : "Locked"}
+                </SidebarMenuBadge>
               </SidebarMenuItem>
-            </SidebarMenu>
-
-            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground mt-3">Available Tools</div>
-            <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="XML Formatter">
+                <SidebarMenuButton asChild>
                   <NavLink
-                    to="/tools"
+                    to="/tools/formatter"
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
                     activeClassName="bg-primary/10 text-primary font-medium"
                   >
@@ -132,23 +156,24 @@ export function AppSidebar() {
                     <span>XML Formatter</span>
                   </NavLink>
                 </SidebarMenuButton>
+                <SidebarMenuBadge className={activatedMap.formatter ? "bg-primary/10" : "bg-muted"}>
+                  {activatedMap.formatter ? "Active" : "Locked"}
+                </SidebarMenuBadge>
               </SidebarMenuItem>
-            </SidebarMenu>
-
-            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground mt-3">Not Owned Tools</div>
-            <SidebarMenu>
               <SidebarMenuItem>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg opacity-50 cursor-not-allowed">
-                      <span className="text-lg">🔒</span>
-                      <span>XML Merge</span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Access requires an activation key. Please contact your administrator to unlock this tool.
-                  </TooltipContent>
-                </Tooltip>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/tools/merge"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
+                    activeClassName="bg-primary/10 text-primary font-medium"
+                  >
+                    <Wrench className="h-5 w-5" />
+                    <span>XML Merge</span>
+                  </NavLink>
+                </SidebarMenuButton>
+                <SidebarMenuBadge className={activatedMap.merge ? "bg-primary/10" : "bg-muted"}>
+                  {activatedMap.merge ? "Active" : "Locked"}
+                </SidebarMenuBadge>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
